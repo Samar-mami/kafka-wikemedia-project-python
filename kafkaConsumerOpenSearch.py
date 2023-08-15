@@ -1,7 +1,7 @@
 import json
 from urllib.parse import urlparse
 from opensearchpy import OpenSearch
-from confluent_kafka import Consumer
+from confluent_kafka import Consumer, TopicPartition
 import config
 
 
@@ -46,12 +46,22 @@ def create_kafka_consumer():
     return consumer
 
 
+def get_partition_lag(consumer, topic, partition):
+    topicPartition = TopicPartition(topic, partition)
+    committed = consumer.committed([topicPartition])[0].offset
+    last_offset = consumer.get_watermark_offsets(topicPartition)[1]
+    partition_lag = last_offset - committed
+    return partition_lag
+
+
 opensearch_client = create_opensearch_client()
 topic = 'wikimedia.recentchange'
 consumer = create_kafka_consumer()
 consumer.subscribe([topic])
 print('Consumer subscribed to the topic wikimedia.recentchange')
-
+topic_metadata = consumer.list_topics(topic=topic).topics.get(topic)
+partition_count = len(topic_metadata.partitions)
+print(f"Topic '{topic}' has {partition_count} partitions.")
 batch_size = 10
 while True:
     # Poll for new messages
@@ -108,5 +118,9 @@ while True:
                 print("Error decoding message:", str(e))
     # Synchronous offset commit
     consumer.commit(asynchronous=False)
-    print('Offsets have been commited')
-    #consumer.close()
+    print('Offsets have been committed')
+    somme_lag = 0
+    for partition in range(partition_count):
+        print(get_partition_lag(consumer, topic, partition))
+        somme_lag += (get_partition_lag(consumer, topic, partition))
+    print(somme_lag)
