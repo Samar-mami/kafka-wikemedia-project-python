@@ -106,3 +106,7 @@ while True:
                     print("Empty message value, skipping indexing.")
             except Exception as e:
                 print("Error decoding message:", str(e))
+    # Synchronous offset commit
+    consumer.commit(asynchronous=False)
+    print('Offsets have been commited')
+    #consumer.close()
