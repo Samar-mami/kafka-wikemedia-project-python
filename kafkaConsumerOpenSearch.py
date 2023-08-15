@@ -62,7 +62,8 @@ print('Consumer subscribed to the topic wikimedia.recentchange')
 topic_metadata = consumer.list_topics(topic=topic).topics.get(topic)
 partition_count = len(topic_metadata.partitions)
 print(f"Topic '{topic}' has {partition_count} partitions.")
-batch_size = 10
+batch_size = 100
+somme_lag = 0
 while True:
     # Poll for new messages
     messages = consumer.consume(batch_size, timeout=2)
@@ -110,8 +111,8 @@ while True:
                             print("Error decoding JSON data:", str(json_error))
                         except Exception as e:
                             print("Error indexing document:", str(e))
-                    else:
-                        print("Unexpected key:", key)
+                    # else:
+                    # print("Unexpected key:", key)
                 else:
                     print("Empty message value, skipping indexing.")
             except Exception as e:
@@ -119,8 +120,7 @@ while True:
     # Synchronous offset commit
     consumer.commit(asynchronous=False)
     print('Offsets have been committed')
-    somme_lag = 0
     for partition in range(partition_count):
-        print(get_partition_lag(consumer, topic, partition))
+        # print(get_partition_lag(consumer, topic, partition))
         somme_lag += (get_partition_lag(consumer, topic, partition))
     print(somme_lag)
